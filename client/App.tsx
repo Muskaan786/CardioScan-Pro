@@ -81,11 +81,9 @@ function SiteFooter() {
             AI-Powered Heart Disease Analysis System for Medical Professionals
           </p>
           <p className="text-xs text-muted-foreground">
-            © {new Date().getFullYear()} SY MTech Project. Advanced OCR & Medical AI Technology.
+            © {new Date().getFullYear()} Advanced OCR & Medical AI Technology.
           </p>
-          <p className="text-xs text-red-600 dark:text-red-400 mt-2 font-medium">
-            ⚠️ For Educational & Research Purposes Only - Not for Clinical Use
-          </p>
+        
         </div>
       </div>
     </footer>

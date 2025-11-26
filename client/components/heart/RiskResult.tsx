@@ -195,33 +195,37 @@ export function RiskResult({ result, fileName, file }: RiskResultProps) {
             </ul>
           </div>
           
-          {result.recommendations && result.recommendations.length > 0 && (
+          {result.recommendations && result.recommendations.items && result.recommendations.items.length > 0 && (
             <div className="rounded-lg border bg-gradient-to-br from-blue-50 to-green-50 p-4 dark:from-blue-950/20 dark:to-green-950/20">
               <h3 className="font-semibold text-blue-900 dark:text-blue-100 flex items-center gap-2">
                 <Activity className="h-4 w-4" />
                 Medical Recommendations
               </h3>
               <div className="mt-3 space-y-2">
-                {result.recommendations.map((rec, i) => (
-                  <div key={i} className="text-sm text-blue-800 dark:text-blue-200">
-                    {rec.startsWith('🚨') ? (
-                      <div className="font-semibold text-red-700 dark:text-red-300">{rec}</div>
-                    ) : rec.startsWith('⚠️') ? (
-                      <div className="font-medium text-amber-700 dark:text-amber-300">{rec}</div>
-                    ) : rec.startsWith('✅') ? (
-                      <div className="font-medium text-green-700 dark:text-green-300">{rec}</div>
-                    ) : rec.startsWith('🏥') ? (
-                      <div className="font-medium text-blue-700 dark:text-blue-300 mt-3">{rec}</div>
-                    ) : rec.startsWith('•') ? (
-                      <div className="ml-4 text-gray-700 dark:text-gray-300">{rec}</div>
-                    ) : (
-                      <div>{rec}</div>
-                    )}
-                  </div>
-                ))}
+                {result.recommendations.items.map((recItem, i) => {
+                  const rec = recItem.text;
+                  return (
+                    <div key={i} className="text-sm text-blue-800 dark:text-blue-200">
+                      {rec.startsWith('🚨') ? (
+                        <div className="font-semibold text-red-700 dark:text-red-300">{rec}</div>
+                      ) : rec.startsWith('⚠️') ? (
+                        <div className="font-medium text-amber-700 dark:text-amber-300">{rec}</div>
+                      ) : rec.startsWith('✅') ? (
+                        <div className="font-medium text-green-700 dark:text-green-300">{rec}</div>
+                      ) : rec.startsWith('🏥') ? (
+                        <div className="font-medium text-blue-700 dark:text-blue-300 mt-3">{rec}</div>
+                      ) : rec.startsWith('•') ? (
+                        <div className="ml-4 text-gray-700 dark:text-gray-300">{rec}</div>
+                      ) : (
+                        <div>{rec}</div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
+          
           <MetricsGrid result={result} />
           {(result.metrics as any).cardiacRecommendations && (
             <div className="rounded-lg border bg-blue-50 p-4 dark:bg-blue-950/20">

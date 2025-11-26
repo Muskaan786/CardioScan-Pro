@@ -402,7 +402,7 @@ function parseTriageString(triageStr: string, metrics: HeartMetrics, meta: Analy
     timeWindow,
     reason,
     action,
-    warningSigns: getWarningSigns(metrics, meta),
+    warningSigns: getWarningSigns(metrics, meta.category),
     nextStepsChecklist: getNextStepsChecklist(triageStr)
   };
 }
@@ -493,15 +493,39 @@ function getCategoryMetadata(category: HeartAnalysis['category']): CategoryMeta 
  * Helper: Get confidence metadata with breakdown
  */
 function getConfidenceMetadata(confidence: number, metrics: HeartMetrics, score: number): ConfidenceMeta {
-  const importantParams = ['age', 'ejectionFraction', 'systolic', 'diastolic', 'cholesterol', 'ldl', 'hdl', 'fastingBloodSugar'];
+  const importantParams = ['age', 'ejectionFraction', 'systolic', 'diastolic', 'cholesterol', 'ldl', 'hdl', 'fastingBloodSugar', 'pasp', 'trVelocity', 'ecgResult', 'familyHistory', 'sex'];
   const presentCount = importantParams.filter(p => metrics[p as keyof HeartMetrics] !== undefined).length;
   const dataCompleteness = presentCount / importantParams.length;
   
-  const keyMarkers = ['ejectionFraction', 'systolic', 'pasp'];
-  const keyMarkersPresent = keyMarkers.filter(p => metrics[p as keyof HeartMetrics] !== undefined).length;
-  const keyMarkerQuality = keyMarkersPresent / keyMarkers.length;
+  // Key cardiac markers for quality assessment - matches estimateConfidence()
+  const hasEF = metrics.ejectionFraction !== undefined || metrics.lvef !== undefined;
+  const hasBP = (metrics.systolic !== undefined && metrics.diastolic !== undefined) || 
+                (metrics.systolic !== undefined || metrics.diastolic !== undefined);
+  const hasLipids = metrics.cholesterol !== undefined || metrics.ldl !== undefined || 
+                    metrics.hdl !== undefined || metrics.triglycerides !== undefined;
   
-  const clinicalContext = score > 8 ? 0.8 : score > 5 ? 0.6 : 0.4;
+  let keyMarkerQuality = 0;
+  if (hasEF) keyMarkerQuality += 0.4;    // EF is most important - 40%
+  if (hasBP) keyMarkerQuality += 0.35;   // BP is very important - 35%
+  if (hasLipids) keyMarkerQuality += 0.25; // Lipids are important - 25%
+  
+  // Clinical context based on criticality of findings
+  // Higher scores or presence of critical values increases context confidence
+  let clinicalContext = 0.35; // Base context
+  if (score > 10) {
+    clinicalContext = 0.85; // High risk detected - high confidence
+  } else if (score > 6) {
+    clinicalContext = 0.65; // Moderate risk
+  } else if (score > 3) {
+    clinicalContext = 0.5;  // Low-moderate risk
+  }
+  
+  // Add context boost for critical findings that increase confidence
+  if ((hasEF && (metrics.ejectionFraction || metrics.lvef || 0) < 40) ||
+      (hasBP && (metrics.systolic || 0) > 160) ||
+      (metrics.pasp && metrics.pasp > 40)) {
+    clinicalContext = Math.min(1.0, clinicalContext + 0.15);
+  }
   
   const missingParams = importantParams.filter(p => metrics[p as keyof HeartMetrics] === undefined);
   

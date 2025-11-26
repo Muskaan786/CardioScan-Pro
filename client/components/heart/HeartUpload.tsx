@@ -39,11 +39,11 @@ export function HeartUpload({ onAnalyzed }: HeartUploadProps) {
     const isPDF = file.type === "application/pdf" || file.name.toLowerCase().endsWith('.pdf');
     
     if (isImage) {
-      setProcessingStatus("Extracting text from image...");
+      setProcessingStatus("🔬 Extracting cardiac parameters from image using OCR...");
     } else if (isPDF) {
-      setProcessingStatus("Processing PDF document...");
+      setProcessingStatus("📄 Processing multi-page medical document...");
     } else {
-      setProcessingStatus("Analyzing report...");
+      setProcessingStatus("⚡ Running AI-powered cardiac risk analysis...");
     }
     
     try {

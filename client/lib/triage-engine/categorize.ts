@@ -42,26 +42,27 @@ export function categorizeRisk(score: number): CategoryResult {
   normalizedRiskPercent = Math.round(normalizedRiskPercent * 10) / 10;
 
   // 2. MAP TO CLINICAL CATEGORY
-  // Categories based on clinical urgency and recommended action timelines
+  // Categories based on updated risk thresholds
+  // High Risk: >60%, Moderate: 25-60%, Low: 5-25%, Normal: <5%
   let category: "High" | "Moderate" | "Low" | "Normal";
 
-  if (normalizedRiskPercent >= 80) {
-    // HIGH RISK: ≥80%
+  if (normalizedRiskPercent > 60) {
+    // HIGH RISK: >60%
     // Indicates multiple severe risk factors or critical cardiac dysfunction
-    // Requires immediate medical attention
+    // Urgent clinical evaluation within 24-72 hours
     category = "High";
-  } else if (normalizedRiskPercent >= 50) {
-    // MODERATE RISK: 50-79%
+  } else if (normalizedRiskPercent >= 25) {
+    // MODERATE RISK: 25-60%
     // Indicates significant risk factors requiring intervention
-    // Recommend follow-up within 2-4 weeks
+    // Follow-up with doctor within 2-4 weeks
     category = "Moderate";
-  } else if (normalizedRiskPercent >= 20) {
-    // LOW RISK: 20-49%
+  } else if (normalizedRiskPercent >= 5) {
+    // LOW RISK: 5-25%
     // Indicates some risk factors present but not immediately concerning
-    // Recommend annual monitoring and lifestyle modifications
+    // Routine care recommended
     category = "Low";
   } else {
-    // NORMAL: <20%
+    // NORMAL: <5%
     // Minimal or no significant risk factors detected
     // Continue preventive care and healthy lifestyle
     category = "Normal";
@@ -82,16 +83,16 @@ export function categorizeRisk(score: number): CategoryResult {
 export function getCategoryDescription(category: "High" | "Moderate" | "Low" | "Normal"): string {
   switch (category) {
     case "High":
-      return "High cardiovascular risk detected. This indicates the presence of severe risk factors or critical cardiac dysfunction that requires immediate medical attention. Multiple parameters are outside normal ranges.";
+      return "High cardiovascular risk detected (>60%). This indicates the presence of multiple severe risk factors, critical cardiac dysfunction, or major risk factors like diabetes + smoking. Urgent clinical evaluation within 24-72 hours is required to prevent adverse cardiac events.";
     
     case "Moderate":
-      return "Moderate cardiovascular risk detected. Significant risk factors are present that require medical intervention. Schedule a follow-up appointment with your healthcare provider within 2-4 weeks.";
+      return "Moderate cardiovascular risk detected (25-60%). Significant risk factors are present that require medical intervention. Follow-up with your doctor within 2-4 weeks to develop a risk reduction plan and consider medication or lifestyle changes.";
     
     case "Low":
-      return "Low cardiovascular risk detected. Some risk factors are present but not immediately concerning. Annual monitoring and lifestyle modifications recommended.";
+      return "Low cardiovascular risk detected (5-25%). Some risk factors are present but not immediately concerning. Routine care recommended. Focus on lifestyle modifications to prevent progression.";
     
     case "Normal":
-      return "Normal cardiovascular risk profile. Minimal or no significant risk factors detected. Continue preventive care and maintain healthy lifestyle habits.";
+      return "Normal cardiovascular risk profile (<5%). Minimal or no significant risk factors detected. Continue preventive care and maintain healthy lifestyle habits.";
   }
 }
 
@@ -148,13 +149,13 @@ export function getCategoryIcon(category: "High" | "Moderate" | "Low" | "Normal"
 export function getActionTimeline(category: "High" | "Moderate" | "Low" | "Normal"): string {
   switch (category) {
     case "High":
-      return "Immediate action required - Seek medical care within 24 hours or visit emergency department";
+      return "Urgent clinical evaluation within 24-72 hours - Contact your healthcare provider immediately or visit urgent care";
     
     case "Moderate":
-      return "Follow-up recommended within 2-4 weeks - Contact your healthcare provider to schedule appointment";
+      return "Follow-up with doctor within 2-4 weeks - Contact your healthcare provider to schedule appointment";
     
     case "Low":
-      return "Annual monitoring recommended - Schedule routine check-up and consider lifestyle modifications";
+      return "Routine care - Schedule regular check-up and focus on lifestyle modifications";
     
     case "Normal":
       return "Continue current care - Maintain healthy lifestyle and attend regular preventive care visits";

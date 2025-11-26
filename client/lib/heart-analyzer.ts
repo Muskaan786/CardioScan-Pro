@@ -23,7 +23,9 @@ export function extractMetricsFromText(text: string): HeartMetrics {
     for (const p of patterns) {
       const m = t.match(p);
       if (m) {
-        const num = parseFloat(m[1].replace(/,/g, "."));
+        // Clean up the number: remove commas, extra spaces, handle different decimal separators
+        let numStr = m[1].replace(/,/g, ".").replace(/\s+/g, "").trim();
+        const num = parseFloat(numStr);
         if (!Number.isNaN(num)) {
           console.log(`✓ Found number: ${num} using pattern: ${p}`);
           return num;
@@ -56,8 +58,10 @@ export function extractMetricsFromText(text: string): HeartMetrics {
   // Extract age and sex
   console.log('--- Extracting Age and Sex ---');
   
-  // More flexible age patterns
+  // More flexible age patterns - handle OCR errors
   const agePatterns = [
+    /(\d{2,3})y\/[mf]/i,  // Standard "29Y/M" format
+    /[z](\d{1})y\/[mf]/i,  // "Z9Y/M" → extract as 29 (Z = 2)
     /(\d{1,3})\s*(?:y|yr|years?|y\/f|y\/m|year)/,
     /age\s*:?\s*(\d{1,3})/,
     /(\d{1,3})\s*years?\s*old/,
@@ -67,7 +71,14 @@ export function extractMetricsFromText(text: string): HeartMetrics {
   for (const pattern of agePatterns) {
     const ageMatch = t.match(pattern);
     if (ageMatch) {
-      const age = parseInt(ageMatch[1]);
+      let age = parseInt(ageMatch[1]);
+      
+      // Fix OCR error: Z9 → 29
+      if (ageMatch[0].toLowerCase().startsWith('z') && age < 10) {
+        age = 20 + age; // Z9 → 29
+        console.log(`✓ Fixed OCR error: ${ageMatch[0]} → ${age} years`);
+      }
+      
       if (age >= 1 && age <= 120) {
         metrics.age = age;
         console.log(`✓ Extracted age: ${age} using pattern: ${pattern}`);
@@ -76,11 +87,11 @@ export function extractMetricsFromText(text: string): HeartMetrics {
     }
   }
 
-  // Extract sex
-  if (t.includes('y/f') || t.includes('female') || t.includes('f/') || t.includes('mrs') || t.includes('ms.')) {
+  // Extract sex - check for various formats
+  if (/\d+y\/f/i.test(t) || t.includes('y/f') || t.includes('female') || t.includes('f/') || t.includes('mrs') || t.includes('ms.')) {
     metrics.sex = 'female';
     console.log('✓ Extracted sex: female');
-  } else if (t.includes('y/m') || t.includes('male') || t.includes('m/') || t.includes('mr.') || t.includes('mr ')) {
+  } else if (/\d+y\/m/i.test(t) || t.includes('y/m') || t.includes('male') || t.includes('m/') || t.includes('mr.') || t.includes('mr ')) {
     metrics.sex = 'male';
     console.log('✓ Extracted sex: male');
   }
@@ -123,19 +134,23 @@ export function extractMetricsFromText(text: string): HeartMetrics {
   
   // TR velocity and PASP (important for pulmonary hypertension)
   const trVelocityPatterns = [
-    /tr velocity.*?(\d{1,2}\.\d)m\/sec/,
-    /peak tr velocity.*?(\d{1,2}\.\d)/
+    /tr velocity\s*\([^)]+\)\s*(\d{1,2}\.\d+)/,  // For "TR Velocity (MM) 2.4" format
+    /tr velocity.*?(\d{1,2}\.\d)m?\/sec/,
+    /peak tr velocity.*?(\d{1,2}\.\d)/,
+    /trvelocity.*?(\d{1,2}\.\d+)/
   ];
   const trVelocity = findNumber(trVelocityPatterns);
   
   const paspPatterns = [
-    /pasp.*?(\d{1,3})mmhg/,
-    /epasp.*?(\d{1,3})mmhg/,
+    /pasp\s*\([^)]+\)\s*(\d{1,3})/,  // For "PASP (MM) 35" format
+    /pasp.*?(\d{1,3})\s*mmhg/,
+    /epasp.*?(\d{1,3})\s*mmhg/,
     /pulmonary.*?pressure.*?(\d{1,3})/
   ];
   const pasp = findNumber(paspPatterns);
   
   if (trVelocity) {
+    metrics.trVelocity = trVelocity; // STORE IT!
     console.log(`✓ TR velocity: ${trVelocity} m/sec`);
     // TR velocity can indicate pulmonary hypertension
     if (trVelocity > 2.8) {
@@ -144,6 +159,7 @@ export function extractMetricsFromText(text: string): HeartMetrics {
   }
   
   if (pasp) {
+    metrics.pasp = pasp; // STORE IT!
     console.log(`✓ PASP: ${pasp} mmHg`);
     // Convert PASP to estimated systolic BP for analysis
     if (pasp > 35) {
@@ -151,26 +167,137 @@ export function extractMetricsFromText(text: string): HeartMetrics {
     }
   }
 
+  // Additional Echo Parameters (IVSd, LVIDd, FS, LA Dimension, etc.)
+  console.log('--- Extracting Additional Echo Parameters ---');
+  
+  // IVSd - Interventricular Septum thickness in diastole
+  const ivsdPatterns = [
+    /ivsd\s*\([^)]+\)\s*(\d{1,2}\.\d+)/,  // "IVSd (MM) 0.915" (with or without cm)
+    /ivs[d]?\s*:?\s*(\d{1,2}\.\d+)/,
+    /interventricular septum.*?(\d{1,2}\.\d+)/,
+    /ivsd.*?(\d{1}\.\d{2,3})/,  // More flexible for OCR errors
+  ];
+  const ivsd = findNumber(ivsdPatterns);
+  if (ivsd && ivsd >= 0.5 && ivsd <= 3.0) {  // Reasonable range for IVSd in cm
+    (metrics as any).ivsd = ivsd;
+    console.log(`✓ IVSd: ${ivsd} cm`);
+  }
+
+  // LVIDd - Left Ventricular Internal Diameter in diastole
+  const lviddPatterns = [
+    /lvid[do]\s*\([^)]+\)\s*(\d{1,2}\.\d+)/,  // "LVIDO (MM) 3.57" (with or without cm)
+    /lvid[do]?\s*:?\s*(\d{1,2}\.\d+)/,
+    /lv.*?internal.*?diameter.*?(\d{1,2}\.\d+)/,
+    /lvido.*?(\d{1}\.\d{1,2})/,  // More flexible
+  ];
+  const lvidd = findNumber(lviddPatterns);
+  if (lvidd && lvidd >= 2.0 && lvidd <= 7.0) {  // Reasonable range for LVIDd in cm
+    (metrics as any).lvidd = lvidd;
+    console.log(`✓ LVIDd: ${lvidd} cm`);
+  }
+
+  // Fractional Shortening (FS)
+  const fsPatterns = [
+    /fs\s*\([^)]+\)\s*(\d{1,3}\.\d+)%?/,  // "FS (MM Cubeid) 29.4%"
+    /(?:^|\s)fs[\s:]*(\d{1,3}\.\d+)%?/,  // Simplified - just "FS 29.4" or "FS: 29.4"
+    /fractional shortening.*?(\d{1,3}\.\d+)/,
+    /fs.*?(\d{2}\.\d)%?/,  // More flexible
+  ];
+  const fs = findNumber(fsPatterns);
+  if (fs && fs >= 10 && fs <= 50) {  // Reasonable range for FS in %
+    (metrics as any).fractionalShortening = fs;
+    console.log(`✓ Fractional Shortening: ${fs}%`);
+  }
+
+  // LA Dimension - Left Atrium size
+  const laDimenPatterns = [
+    /la dimen.*?(\d{1,2}\.\d+)\s*cm/,  // "LA Dimen 2.8 cm"
+    /la\s*(?:dimension|size)\s*:?\s*(\d{1,2}\.\d+)/,
+    /left atrium.*?(\d{1,2}\.\d+)\s*cm/
+  ];
+  const laDimen = findNumber(laDimenPatterns);
+  if (laDimen) {
+    (metrics as any).laDimension = laDimen;
+    console.log(`✓ LA Dimension: ${laDimen} cm`);
+  }
+
   // Ejection Fraction (Critical for cardiac assessment)
   console.log('--- Extracting Ejection Fraction ---');
   const efPatterns = [
-    /ef\s*:?\s*>?\s*(\d{1,3})%?/,
-    /ejection fraction\s*:?\s*>?\s*(\d{1,3})%?/,
-    /lvef\s*:?\s*>?\s*(\d{1,3})%?/,
-    /left ventricular ejection fraction\s*:?\s*>?\s*(\d{1,3})%?/,
-    /ef:\s*>\s*(\d{1,3})/,  // For "EF:>55%" pattern
-    /systolic function.*?ef.*?(\d{1,3})/
+    /ef\s*\([^)]+\)\s*(\d{2,3})%/,  // For "EF (AAC) 68%" format - require % sign and 2-3 digits
+    /(?:^|\s)ef[\s:]*(\d{2,3})%/,  // Simplified - "EF 68%" - require % sign
+    /ef\s*:?\s*>?\s*(\d{2,3})%/,  // Require % sign
+    /ejection fraction\s*:?\s*>?\s*(\d{2,3})%?/,
+    /lvef\s*:?\s*>?\s*(\d{2,3})%?/,
+    /left ventricular ejection fraction\s*:?\s*>?\s*(\d{2,3})%?/,
+    /ef:\s*>\s*(\d{2,3})/,
+    /systolic function.*?ef.*?(\d{2,3})/,
+    /ff\s*\([^)]+\)\s*(\d{2,3})%?/,  // "FF (40)" format (alternative notation)
+    /\(aac\)\s*(\d{2,3})%/,  // Just look for "(AAC) 68%" pattern
+    /ef\s*[-:]?\s*(\d{2,3})\s*%/  // Generic EF with %
   ];
   
   for (const pattern of efPatterns) {
     const match = t.match(pattern);
     if (match) {
       const ef = parseInt(match[1]);
-      if (ef >= 10 && ef <= 100) {
-        metrics.ejectionFraction = ef;
-        metrics.lvef = ef;
-        console.log(`✓ Ejection Fraction: ${ef}% using pattern: ${pattern}`);
-        break;
+      console.log(`  → Testing EF pattern ${pattern}: matched "${match[0]}", extracted value: ${ef}`);
+      // Prefer values in normal range (40-80%) over abnormal ones
+      if (ef >= 35 && ef <= 85) {
+        // If we already have an EF and this one is in a better range, use it
+        if (!metrics.ejectionFraction || (ef >= 45 && ef <= 75)) {
+          metrics.ejectionFraction = ef;
+          metrics.lvef = ef;
+          console.log(`✓ Ejection Fraction: ${ef}% using pattern: ${pattern}`);
+          if (ef >= 45 && ef <= 75) break; // Stop if we found a normal-range value
+        }
+      } else if (ef >= 10 && ef <= 35) {
+        // Very low EF - only use if no better value found
+        if (!metrics.ejectionFraction) {
+          metrics.ejectionFraction = ef;
+          metrics.lvef = ef;
+          console.log(`✓ Ejection Fraction (Low): ${ef}% using pattern: ${pattern}`);
+        }
+      } else {
+        console.log(`  ✗ Value ${ef} outside valid range (10-85)`);
+      }
+    }
+  }
+  
+  if (!metrics.ejectionFraction) {
+    console.log('⚠️ WARNING: Could not extract Ejection Fraction. Searching for EF-like patterns in text...');
+    
+    // Try to find any mention of EF in the text
+    const efMention = t.match(/ef[^\d]*(\d{2,3})/);
+    if (efMention) {
+      let val = parseInt(efMention[1]);
+      console.log(`  Found EF mention: "${efMention[0]}" with value ${val}`);
+      
+      // Fix OCR errors: 512 → 51, 682 → 68, etc.
+      if (val > 100) {
+        const valStr = val.toString();
+        val = parseInt(valStr.substring(0, 2)); // Take first 2 digits
+        console.log(`  → Fixed OCR error: converted ${valStr} to ${val}`);
+      }
+      
+      if (val >= 35 && val <= 80) {
+        metrics.ejectionFraction = val;
+        metrics.lvef = val;
+        console.log(`  ✓ Using fallback EF value: ${val}%`);
+      }
+    }
+    
+    // Also try FF pattern (alternative notation for EF in some reports)
+    const ffMatch = t.match(/ff\s*\([^)]+\)\s*(\d{2,3})/);
+    if (ffMatch && !metrics.ejectionFraction) {
+      let val = parseInt(ffMatch[1]);
+      console.log(`  Found FF (Fractional Function) mention: "${ffMatch[0]}" with value ${val}`);
+      
+      // FF could be 40, 45, 50, etc.
+      if (val >= 35 && val <= 80) {
+        metrics.ejectionFraction = val;
+        metrics.lvef = val;
+        console.log(`  ✓ Using FF as EF value: ${val}%`);
       }
     }
   }
@@ -215,6 +342,18 @@ export function extractMetricsFromText(text: string): HeartMetrics {
     /weight.*?(\d{1,2}\.\d)\s*(?:kg\/m|bmi)/
   ];
   metrics.bmi = findNumber(bmiPatterns);
+
+  // BSA - Body Surface Area
+  const bsaPatterns = [
+    /bsa\s*:?\s*(\d{1,2}\.\d+)/,
+    /body surface area\s*:?\s*(\d{1,2}\.\d+)/,
+    /bsa.*?(\d{1,2}\.\d+)\s*m/
+  ];
+  const bsa = findNumber(bsaPatterns);
+  if (bsa) {
+    (metrics as any).bsa = bsa;
+    console.log(`✓ BSA: ${bsa} m²`);
+  }
 
   // Extract height and weight to calculate BMI if not provided
   const heightPatterns = [
@@ -304,6 +443,49 @@ export function extractMetricsFromText(text: string): HeartMetrics {
 
   console.log('=== FINAL EXTRACTED METRICS ===');
   console.log(JSON.stringify(metrics, null, 2));
+  
+  // FALLBACK: Try to extract EF if we still don't have it
+  if (!metrics.ejectionFraction && !metrics.lvef) {
+    console.log('--- FALLBACK: Trying aggressive EF extraction ---');
+    // Look for any percentage between 30-80 that might be EF
+    const percentages = text.match(/(\d{2,3})\s*%/g);
+    if (percentages) {
+      console.log('Found percentages:', percentages);
+      
+      // Prioritize percentages in the EF range (45-75%)
+      const candidates = [];
+      for (const p of percentages) {
+        const val = parseInt(p);
+        if (val >= 35 && val <= 80) {
+          const idx = text.toLowerCase().indexOf(p.toLowerCase());
+          const before = text.substring(Math.max(0, idx - 50), idx).toLowerCase();
+          const after = text.substring(idx, Math.min(text.length, idx + 20)).toLowerCase();
+          
+          // Score this percentage based on context
+          let score = 0;
+          if (before.includes('ef') || after.includes('ef')) score += 10;
+          if (before.includes('aac') || before.includes('a4c')) score += 8;
+          if (before.includes('ejection')) score += 10;
+          if (val >= 45 && val <= 75) score += 5; // Normal range bonus
+          if (before.includes('fs')) score -= 5; // Fractional shortening, not EF
+          
+          console.log(`  Candidate: ${val}% (score: ${score}, context: "${before.slice(-20)}${p}")`);
+          candidates.push({ val, score });
+        }
+      }
+      
+      // Use the highest scoring candidate
+      if (candidates.length > 0) {
+        candidates.sort((a, b) => b.score - a.score);
+        const best = candidates[0];
+        if (best.score > 0) {
+          metrics.ejectionFraction = best.val;
+          metrics.lvef = best.val;
+          console.log(`✓ FALLBACK: Extracted EF = ${best.val}% (score: ${best.score})`);
+        }
+      }
+    }
+  }
   
   // If we didn't find much data, let's do a comprehensive search for any medical-looking numbers
   if (Object.keys(metrics).length < 3) {
@@ -554,8 +736,63 @@ export function scoreRisk(metrics: HeartMetrics): Omit<HeartAnalysis, "metrics">
     category,
     confidence: Math.min(1, confidence),
     reasons,
-    recommendations
+    recommendations: {
+      items: recommendations.map(text => ({
+        text,
+        category: 'General',
+        priority: text.includes('⚠️ IMMEDIATE') ? 'urgent' as const : text.includes('📊') ? 'high' as const : 'medium' as const
+      })),
+      priorityRecommendations: [],
+      categorizedRecommendations: {},
+      disclaimer: 'This analysis is for informational purposes only and does not constitute medical advice.'
+    }
   };
+}
+
+async function preprocessImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        // Create canvas with 2x size for better quality
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Canvas context not available'));
+          return;
+        }
+
+        // Scale up for better OCR
+        canvas.width = img.width * 2;
+        canvas.height = img.height * 2;
+        
+        // Draw with smoothing disabled for sharper text
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        
+        // Apply contrast enhancement
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        
+        for (let i = 0; i < data.length; i += 4) {
+          // Increase contrast
+          const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+          const contrast = 1.5;
+          data[i] = Math.min(255, Math.max(0, (data[i] - 128) * contrast + 128));
+          data[i + 1] = Math.min(255, Math.max(0, (data[i + 1] - 128) * contrast + 128));
+          data[i + 2] = Math.min(255, Math.max(0, (data[i + 2] - 128) * contrast + 128));
+        }
+        
+        ctx.putImageData(imageData, 0, 0);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsDataURL(file);
+  });
 }
 
 export async function extractTextFromImage(file: File): Promise<string> {
@@ -563,16 +800,32 @@ export async function extractTextFromImage(file: File): Promise<string> {
   console.log(`Processing file: ${file.name} (${file.size} bytes)`);
   
   try {
-    const worker = await createWorker('eng');
+    console.log('Preprocessing image for better OCR accuracy...');
+    const preprocessedImage = await preprocessImage(file);
     
-    console.log('OCR worker initialized, processing image...');
-    const { data: { text } } = await worker.recognize(file);
+    const worker = await createWorker('eng', 1, {
+      logger: (m) => {
+        if (m.status === 'recognizing text') {
+          console.log(`OCR Progress: ${Math.round(m.progress * 100)}%`);
+        }
+      }
+    });
+    
+    // Configure Tesseract for medical document OCR
+    await worker.setParameters({
+      tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.,:;/-()%[] ',
+      preserve_interword_spaces: '1',
+    });
+    
+    console.log('OCR worker initialized with medical document settings...');
+    const { data: { text } } = await worker.recognize(preprocessedImage);
     
     await worker.terminate();
     
     console.log('✓ OCR completed successfully');
     console.log(`Extracted text length: ${text.length} characters`);
     console.log('Text preview:', text.substring(0, 500));
+    console.log('Full extracted text:', text);
     
     return text;
   } catch (error) {
@@ -649,6 +902,19 @@ export async function analyzeFile(file: File): Promise<HeartAnalysis> {
   console.log('✓ Text extraction successful');
   
   const metrics = extractMetricsFromText(text);
+  
+  // If OCR failed badly (extracted < 3 useful metrics), show helpful message
+  const extractedCount = Object.keys(metrics).filter(k => 
+    !['smoker', 'diabetes', 'familyHistory', 'ecgResult', 'cardiacAbnormalities', 'patientName'].includes(k)
+  ).length;
+  
+  if (extractedCount < 2) {
+    console.warn('⚠️ OCR extracted very little useful data. Consider:');
+    console.warn('  1. Using a higher resolution scan');
+    console.warn('  2. Ensuring good lighting and contrast');
+    console.warn('  3. Uploading a PDF instead of image');
+    console.warn('  4. Manually entering the data');
+  }
   
   // Use new comprehensive triage engine
   const analysis = composeAnalysis(metrics, parsedTextPreview);

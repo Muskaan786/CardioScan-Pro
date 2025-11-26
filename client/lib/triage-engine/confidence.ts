@@ -115,21 +115,47 @@ export function estimateConfidence(metrics: HeartMetrics, score: number): number
   }
 
   // 5. CALCULATE FINAL CONFIDENCE
-  // Weighted formula emphasizing data completeness and key markers
+  // Formula that directly matches the breakdown display for transparency
+  // Uses the exact weights shown to customers (Data: 40%, Markers: 40%, Context: 20%)
+  
+  // Calculate clinical context score based on risk level and critical findings
+  let clinicalContextScore = 0.35; // Base context
+  if (score > 10) {
+    clinicalContextScore = 0.85; // High risk detected
+  } else if (score > 6) {
+    clinicalContextScore = 0.65; // Moderate risk
+  } else if (score > 3) {
+    clinicalContextScore = 0.5;  // Low-moderate risk
+  }
+  
+  // Add boost for critical findings
+  if ((metrics.ejectionFraction && metrics.ejectionFraction < 40) ||
+      (metrics.systolic && metrics.systolic > 160) ||
+      (metrics.pasp && metrics.pasp > 40)) {
+    clinicalContextScore = Math.min(1.0, clinicalContextScore + 0.15);
+  }
+  
+  // Add criticality bonus to context
+  clinicalContextScore = Math.min(1.0, clinicalContextScore + (criticalityBonus * 0.5) + scoreBasedAdjustment);
+  
+  // Calculate confidence using exact breakdown weights (40% + 40% + 20%)
   let confidence = 
-    (0.5 * dataCompleteness) +      // 50% weight on data completeness
-    (0.3 * keyMarkerScore) +        // 30% weight on key markers
-    (0.15 * criticalityBonus) +     // 15% weight on critical findings
-    (0.05 * scoreBasedAdjustment);  // 5% weight on score confidence
+    (0.4 * dataCompleteness) +      // 40% weight on data completeness
+    (0.4 * keyMarkerScore) +        // 40% weight on key markers  
+    (0.2 * clinicalContextScore);   // 20% weight on clinical context
 
-  // 6. APPLY PENALTIES FOR MISSING CRITICAL DATA
-  // If we're missing very important markers, reduce confidence
+  // 6. APPLY MINIMAL PENALTIES FOR MISSING CRITICAL CARDIAC MARKERS
+  // Only apply penalty if missing BOTH EF and BP (the most critical markers)
+  // This keeps confidence transparent while reflecting data limitations
   if (!hasEF && !hasBP) {
-    // Missing both EF and BP significantly reduces confidence
-    confidence *= 0.7;
-  } else if (!hasEF || !hasBP) {
-    // Missing one of the two most important markers
-    confidence *= 0.85;
+    // Missing both most critical cardiac markers - moderate penalty
+    confidence *= 0.85; // Reduced from 0.70 - less harsh
+  } else if (!hasEF) {
+    // Missing EF only - very light penalty
+    confidence *= 0.95; // Reduced from 0.85
+  } else if (!hasBP) {
+    // Missing BP only - minimal penalty
+    confidence *= 0.98; // Reduced from 0.95
   }
 
   // If patient demographics are completely missing

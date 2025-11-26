@@ -98,10 +98,16 @@ export function getTriageRecommendation(
     return `${triageLevels.high.label}: Stage 2 hypertension detected (BP = ${bpString} mmHg). ${triageLevels.high.timeWindow}. Blood pressure control is essential to prevent cardiovascular complications.`;
   }
 
-  // PRIORITY 9: MODERATE RISK SCORE (40-64%)
-  // Multiple moderate risk factors or some significant findings
-  if (analysisMeta.normalizedRiskPercent >= 40) {
-    return `${triageLevels.moderate.label}: Moderate cardiovascular risk detected (${analysisMeta.normalizedRiskPercent}%). ${triageLevels.moderate.timeWindow}. Risk factor assessment and intervention plan recommended.`;
+  // PRIORITY 9: HIGH RISK SCORE (>40%)
+  // Updated threshold: High Risk category now starts at >40%
+  if (analysisMeta.normalizedRiskPercent > 40) {
+    return `${triageLevels.urgent.label}: High cardiovascular risk detected (${analysisMeta.normalizedRiskPercent}%). Urgent clinical evaluation within 24-72 hours. Multiple risk factors present requiring immediate medical attention.`;
+  }
+  
+  // PRIORITY 9b: MODERATE RISK SCORE (20-40%)
+  // Updated threshold: Moderate Risk is now 20-40%
+  if (analysisMeta.normalizedRiskPercent >= 20) {
+    return `${triageLevels.moderate.label}: Moderate cardiovascular risk detected (${analysisMeta.normalizedRiskPercent}%). Follow-up with doctor within 2-4 weeks. Risk factor assessment and intervention plan recommended.`;
   }
 
   // PRIORITY 10: MILDLY REDUCED EJECTION FRACTION
@@ -129,16 +135,16 @@ export function getTriageRecommendation(
     return `${triageLevels.moderate.label}: Major cardiovascular risk factor detected. ${triageLevels.moderate.timeWindow}. Medical management recommended to reduce long-term cardiovascular risk.`;
   }
 
-  // PRIORITY 13: LOW RISK SCORE (20-39%)
-  // Some risk factors present but well-controlled
-  if (analysisMeta.normalizedRiskPercent >= 20) {
+  // PRIORITY 13: LOW RISK SCORE (5-20%)
+  // Updated threshold: Low Risk is now 5-20%
+  if (analysisMeta.normalizedRiskPercent >= 5) {
     return `${triageLevels.routine.label}: Low cardiovascular risk detected (${analysisMeta.normalizedRiskPercent}%). ${triageLevels.routine.timeWindow}. Continue preventive care and lifestyle modifications.`;
   }
 
-  // PRIORITY 14: MINIMAL/NO RISK FACTORS
+  // PRIORITY 14: MINIMAL/NO RISK FACTORS (<5%)
   // Normal or near-normal findings
   if (analysisMeta.category === "Normal") {
-    return `${triageLevels.monitoring.label}: Minimal cardiovascular risk detected (${analysisMeta.normalizedRiskPercent}%). ${triageLevels.monitoring.timeWindow}. Maintain healthy lifestyle habits.`;
+    return `${triageLevels.monitoring.label}: Normal cardiovascular risk profile (${analysisMeta.normalizedRiskPercent}%). ${triageLevels.monitoring.timeWindow}. Maintain healthy lifestyle habits.`;
   }
 
   // DEFAULT: ROUTINE FOLLOW-UP

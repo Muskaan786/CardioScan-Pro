@@ -77,16 +77,24 @@ export function generateRecommendations(
   // SECTION 2: MONITORING RECOMMENDATIONS
   // Specific monitoring based on findings
 
-  // Blood pressure monitoring
-  if (
-    metrics.systolic && metrics.systolic >= thresholds.bp.stage1Systolic ||
-    metrics.diastolic && metrics.diastolic >= thresholds.bp.stage1Diastolic
-  ) {
+  // Blood pressure monitoring - personalized based on actual BP
+  if (metrics.systolic && metrics.systolic >= thresholds.bp.stage2Systolic) {
     recommendations.push(
-      "📊 Monitor blood pressure twice daily (morning and evening) at the same times. Keep a log to share with your healthcare provider."
+      `📊 URGENT: Your blood pressure (${metrics.systolic}/${metrics.diastolic || '?'} mmHg) is Stage 2 hypertension. Monitor BP twice daily. Contact doctor within 24-48 hours to start or adjust medication.`
     );
     recommendations.push(
-      "Reduce sodium intake to <2,300mg daily (ideally <1,500mg if hypertensive). Read food labels and avoid processed foods."
+      "CRITICAL: Reduce sodium to <1,500mg daily. Avoid all processed foods, canned soups, fast food. Start DASH diet immediately (rich in fruits, vegetables, low-fat dairy)."
+    );
+  } else if (metrics.systolic && metrics.systolic >= thresholds.bp.stage1Systolic) {
+    recommendations.push(
+      `📊 Your blood pressure (${metrics.systolic}/${metrics.diastolic || '?'} mmHg) is Stage 1 hypertension. Monitor BP daily at same time. Target: <130/80 mmHg.`
+    );
+    recommendations.push(
+      "Reduce sodium to <2,300mg daily (ideally <1,500mg). Read food labels, avoid processed foods, don't add salt at table."
+    );
+  } else if (metrics.systolic && metrics.systolic >= thresholds.bp.elevatedSystolic) {
+    recommendations.push(
+      `📊 Your blood pressure (${metrics.systolic}/${metrics.diastolic || '?'} mmHg) is elevated. Monitor weekly. Implement lifestyle changes now to prevent hypertension.`
     );
   }
 
@@ -100,40 +108,82 @@ export function generateRecommendations(
     );
   }
 
-  // Lipid management
-  if (
-    (metrics.ldl !== undefined && metrics.ldl >= thresholds.ldl.borderlineHigh) ||
-    (metrics.cholesterol !== undefined && metrics.cholesterol >= thresholds.cholesterol.borderlineHigh)
-  ) {
+  // Lipid management - personalized based on actual LDL level
+  if (metrics.ldl !== undefined && metrics.ldl >= thresholds.ldl.veryHigh) {
     recommendations.push(
-      "🔬 Request lipid panel testing every 3-6 months to monitor cholesterol management. Discuss statin therapy with your doctor if LDL remains elevated."
+      `🔬 URGENT: Your LDL cholesterol (${metrics.ldl} mg/dL) is very high. Discuss statin therapy immediately with your doctor. Target LDL <100 mg/dL (ideally <70 for high-risk patients).`
     );
     recommendations.push(
-      "Adopt heart-healthy diet: increase fiber (oats, beans), omega-3 fatty acids (fish), and plant sterols. Limit saturated fats and trans fats."
+      "Adopt strict low-cholesterol diet: eliminate trans fats, limit saturated fats to <7% of calories, increase soluble fiber (10-25g daily from oats, beans, vegetables)."
+    );
+  } else if (metrics.ldl !== undefined && metrics.ldl >= thresholds.ldl.high) {
+    recommendations.push(
+      `🔬 Your LDL cholesterol (${metrics.ldl} mg/dL) is high. Request lipid panel every 3-4 months. Discuss statin therapy if lifestyle changes don't lower LDL to <130 mg/dL within 3 months.`
+    );
+    recommendations.push(
+      "Increase dietary fiber (oats, beans), omega-3 fatty acids (fatty fish 2x/week), and plant sterols (2g daily). Limit red meat and full-fat dairy."
+    );
+  } else if (metrics.ldl !== undefined && metrics.ldl >= thresholds.ldl.borderlineHigh) {
+    recommendations.push(
+      `📊 Your LDL cholesterol (${metrics.ldl} mg/dL) is borderline high. Monitor with lipid panel every 6 months. Focus on diet and exercise to lower to <130 mg/dL.`
+    );
+  } else if (metrics.cholesterol !== undefined && metrics.cholesterol >= thresholds.cholesterol.high) {
+    recommendations.push(
+      `🔬 Your total cholesterol (${metrics.cholesterol} mg/dL) is high. Get complete lipid panel (LDL, HDL, triglycerides) to assess cardiovascular risk.`
     );
   }
 
-  // Diabetes monitoring
-  if (
-    metrics.diabetes === true ||
-    (metrics.fastingBloodSugar !== undefined && metrics.fastingBloodSugar >= thresholds.fbs.prediabetes)
-  ) {
+  // Diabetes monitoring - personalized based on FBS level
+  if (metrics.diabetes === true) {
     recommendations.push(
-      "📊 Check fasting blood glucose regularly. Request HbA1c test every 3 months. Diabetes doubles cardiovascular risk - tight control is essential."
+      "📊 CRITICAL: Active diabetes diagnosis - check fasting blood glucose daily. Request HbA1c test every 3 months. Target HbA1c <7% to reduce cardiovascular complications."
     );
     recommendations.push(
-      "Meet with diabetes educator or dietitian for meal planning. Consider continuous glucose monitor if diabetic."
+      "Meet with certified diabetes educator and registered dietitian for personalized meal planning. Consider continuous glucose monitor (CGM) for better glucose control."
+    );
+  } else if (metrics.fastingBloodSugar !== undefined && metrics.fastingBloodSugar >= thresholds.fbs.diabetes) {
+    recommendations.push(
+      `⚠️ Your fasting blood sugar (${metrics.fastingBloodSugar} mg/dL) indicates diabetes. Schedule comprehensive diabetes evaluation with doctor immediately. Start HbA1c monitoring.`
+    );
+    recommendations.push(
+      "Begin low-glycemic diet: focus on whole grains, lean proteins, non-starchy vegetables. Limit refined carbs, sugary drinks, sweets."
+    );
+  } else if (metrics.fastingBloodSugar !== undefined && metrics.fastingBloodSugar >= thresholds.fbs.prediabetes) {
+    recommendations.push(
+      `📊 Your fasting blood sugar (${metrics.fastingBloodSugar} mg/dL) indicates prediabetes. Check FBS every 6 months. Lose 5-7% body weight to prevent progression to diabetes.`
+    );
+    recommendations.push(
+      "Reduce refined carbohydrates and increase physical activity (150 min/week). This can reduce diabetes risk by 58%."
     );
   }
 
   // SECTION 3: LIFESTYLE MODIFICATIONS
   // Evidence-based lifestyle changes for cardiovascular health
 
-  // General cardiovascular health (for all risk levels)
-  if (analysisMeta.category !== "Normal") {
+  // Only add general lifestyle recommendations if we have specific risk factors
+  // Don't add generic advice unless needed
+  const hasModifiableRiskFactors = (
+    metrics.smoker || 
+    metrics.diabetes || 
+    (metrics.bmi && metrics.bmi >= thresholds.bmi.overweight) ||
+    (metrics.systolic && metrics.systolic >= thresholds.bp.stage1Systolic) ||
+    (metrics.ldl && metrics.ldl >= thresholds.ldl.borderlineHigh)
+  );
+
+  // Only add exercise recommendation if patient has cardiovascular risk
+  if (hasModifiableRiskFactors && analysisMeta.category !== "Normal") {
     recommendations.push(
       "🏃 Aim for 150 minutes of moderate aerobic activity weekly (brisk walking, cycling, swimming). Start slowly and gradually increase if currently sedentary."
     );
+  }
+
+  // Only add diet recommendation if lipids or BP are elevated
+  if (
+    (metrics.ldl && metrics.ldl >= thresholds.ldl.borderlineHigh) ||
+    (metrics.cholesterol && metrics.cholesterol >= thresholds.cholesterol.borderlineHigh) ||
+    (metrics.systolic && metrics.systolic >= thresholds.bp.stage1Systolic) ||
+    metrics.diabetes
+  ) {
     recommendations.push(
       "🍎 Follow Mediterranean or DASH diet pattern: emphasize fruits, vegetables, whole grains, lean proteins, healthy fats. Limit red meat and sweets."
     );
@@ -160,11 +210,15 @@ export function generateRecommendations(
     );
   }
 
-  // Alcohol and stress
-  if (analysisMeta.normalizedRiskPercent >= 40) {
+  // Stress management - only if high BP or high risk
+  if ((metrics.systolic && metrics.systolic >= thresholds.bp.stage2Systolic) || analysisMeta.normalizedRiskPercent >= 60) {
     recommendations.push(
       "🧘 Implement stress reduction techniques: meditation, yoga, deep breathing exercises, or mindfulness practice. Chronic stress elevates cardiovascular risk."
     );
+  }
+  
+  // Alcohol advice - only if BP elevated or high risk
+  if ((metrics.systolic && metrics.systolic >= thresholds.bp.stage1Systolic) || analysisMeta.category === "High") {
     recommendations.push(
       "Limit alcohol consumption: maximum 1 drink daily for women, 2 for men. Excessive alcohol raises blood pressure and heart disease risk."
     );
@@ -183,28 +237,19 @@ export function generateRecommendations(
   }
 
   // SECTION 5: PREVENTIVE CARE
-  // Screening and preventive measures
-
-  if (analysisMeta.category !== "High") {
-    // Not immediate crisis - include preventive recommendations
+  // Only recommend additional screening if there are risk factors and patient is older
+  
+  if (hasModifiableRiskFactors && metrics.age && metrics.age >= 50 && analysisMeta.category !== "Normal") {
     recommendations.push(
-      "🔍 Maintain regular preventive care: annual physical exam, dental cleanings (oral health linked to heart disease), vision screening, and age-appropriate cancer screenings."
+      "Consider additional cardiac screening: exercise stress test, coronary calcium scoring, or advanced lipid testing. Discuss with your cardiologist."
     );
-    
-    if (metrics.age && metrics.age >= 50) {
-      recommendations.push(
-        "Consider additional cardiac screening: exercise stress test, coronary calcium scoring, or advanced lipid testing. Discuss with your cardiologist."
-      );
-    }
   }
 
-  // Sleep and hydration
-  if (analysisMeta.category !== "Normal") {
+  // Sleep - only for high risk or if BP elevated
+  if ((analysisMeta.category === "High" || analysisMeta.category === "Moderate") && 
+      (metrics.systolic && metrics.systolic >= thresholds.bp.stage1Systolic)) {
     recommendations.push(
       "😴 Prioritize sleep: aim for 7-9 hours nightly. Poor sleep increases cardiovascular risk. Screen for sleep apnea if snoring or daytime fatigue present."
-    );
-    recommendations.push(
-      "💧 Stay hydrated: drink adequate water daily (about 8 glasses). Dehydration can strain the heart and affect blood pressure."
     );
   }
 
@@ -227,15 +272,13 @@ export function generateRecommendations(
   }
 
   // SECTION 8: EDUCATIONAL RESOURCES
-  // Encourage patient education
-
-  recommendations.push(
-    "📚 Educate yourself about heart disease: visit heart.org (American Heart Association) for reliable information. Understanding your condition improves outcomes."
-  );
-
-  recommendations.push(
-    "🤝 Consider joining cardiac support group (in-person or online). Connecting with others managing similar conditions provides motivation and practical tips."
-  );
+  // Only for patients with chronic conditions
+  
+  if (metrics.diabetes || (ef && ef < thresholds.ef.moderate) || analysisMeta.category === "High") {
+    recommendations.push(
+      "📚 Learn more about your condition: visit heart.org (American Heart Association) or diabetes.org for evidence-based information."
+    );
+  }
 
   // SECTION 9: EMERGENCY PREPAREDNESS
   // Know the warning signs
@@ -249,12 +292,13 @@ export function generateRecommendations(
     );
   }
 
-  // SECTION 10: MEDICAL DISCLAIMER
-  // Important legal/safety notice
-
-  recommendations.push(
-    "⚕️ IMPORTANT DISCLAIMER: These recommendations are educational suggestions based on automated analysis. They do not constitute medical diagnosis or treatment. Consult with qualified healthcare professionals before making any medical decisions or changes to your treatment plan."
-  );
+  // SECTION 10: MEDICAL DISCLAIMER (if no other recommendations)
+  // Only add disclaimer if we have very few recommendations
+  if (recommendations.length < 3) {
+    recommendations.push(
+      "⚕️ Based on available data, maintain healthy lifestyle and schedule regular check-ups with your healthcare provider."
+    );
+  }
 
   // Remove duplicates (if any)
   const uniqueRecommendations = Array.from(new Set(recommendations));
@@ -292,13 +336,16 @@ export function getPriorityRecommendations(recommendations: string[]): string[] 
  * @param recommendations - Full recommendations array
  * @returns Object with recommendations grouped by category
  */
-export function groupRecommendationsByCategory(recommendations: string[]): Record<string, string[]> {
+export function groupRecommendationsByCategory(recommendations: string[]): Record<string, { text: string; category: string; priority: 'urgent' | 'high' | 'medium' | 'low' }[]> {
+  const mapToItems = (texts: string[], category: string, priority: 'urgent' | 'high' | 'medium' | 'low') => 
+    texts.map(text => ({ text, category, priority }));
+
   return {
-    immediate: recommendations.filter(r => r.includes('⚠️ IMMEDIATE')),
-    monitoring: recommendations.filter(r => r.includes('📊') || r.includes('🔬')),
-    lifestyle: recommendations.filter(r => r.includes('🏃') || r.includes('🍎') || r.includes('⚖️') || r.includes('🚭') || r.includes('🧘')),
-    medical: recommendations.filter(r => r.includes('💊') || r.includes('🔍')),
-    support: recommendations.filter(r => r.includes('🧠') || r.includes('📚') || r.includes('🤝')),
-    safety: recommendations.filter(r => r.includes('🚨') || r.includes('⚕️'))
+    immediate: mapToItems(recommendations.filter(r => r.includes('⚠️ IMMEDIATE')), 'Immediate Care', 'urgent'),
+    monitoring: mapToItems(recommendations.filter(r => r.includes('📊') || r.includes('🔬')), 'Monitoring', 'high'),
+    lifestyle: mapToItems(recommendations.filter(r => r.includes('🏃') || r.includes('🍎') || r.includes('⚖️') || r.includes('🚭') || r.includes('🧘')), 'Lifestyle', 'medium'),
+    medical: mapToItems(recommendations.filter(r => r.includes('💊') || r.includes('🔍')), 'Medications', 'high'),
+    support: mapToItems(recommendations.filter(r => r.includes('🧠') || r.includes('📚') || r.includes('🤝')), 'Support', 'medium'),
+    safety: mapToItems(recommendations.filter(r => r.includes('🚨') || r.includes('⚕️')), 'Safety', 'urgent')
   };
 }

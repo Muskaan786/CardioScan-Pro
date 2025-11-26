@@ -95,8 +95,8 @@ describe('composeAnalysis - End-to-End', () => {
     const analysis = composeAnalysis(metrics);
 
     expect(
-      analysis.recommendations.some(r => 
-        r.includes('DISCLAIMER') || r.includes('not constitute medical diagnosis')
+      analysis.recommendations?.items.some(r => 
+        r.text.includes('DISCLAIMER') || r.text.includes('not constitute medical diagnosis')
       )
     ).toBe(true);
   });
