@@ -1,0 +1,108 @@
+CARDIOVASCULAR ASSESSMENT REPORT
+
+PATIENT INFORMATION
+===================
+Name: SARAH JOHNSON
+Age: 52 years
+Sex: Female
+Date: 26 November 2025
+
+PHYSICAL MEASUREMENTS
+=====================
+Height: 165 cm
+Weight: 82 kg
+BMI: 30.1 kg/m²
+Waist Circumference: 98 cm
+
+VITAL SIGNS
+===========
+Blood Pressure: 148/94 mmHg
+Heart Rate: 88 bpm
+Respiratory Rate: 16/min
+
+LABORATORY RESULTS
+==================
+Lipid Panel:
+  Total Cholesterol: 245 mg/dL
+  LDL Cholesterol: 168 mg/dL
+  HDL Cholesterol: 42 mg/dL
+  Triglycerides: 198 mg/dL
+
+Metabolic Panel:
+  Fasting Blood Glucose: 118 mg/dL
+  HbA1c: 6.2%
+
+ECHOCARDIOGRAM FINDINGS
+========================
+Left Ventricular Ejection Fraction (LVEF): 54%
+Left Atrial Size: Mildly enlarged
+Mitral Valve: Mild regurgitation
+Tricuspid Valve: Trace regurgitation
+Aortic Valve: Normal function
+PASP: 38 mmHg (estimated)
+
+ELECTROCARDIOGRAM (ECG)
+========================
+Rhythm: Normal sinus rhythm
+Rate: 88 bpm
+Axis: Normal
+Intervals: Within normal limits
+ST-T Changes: Non-specific ST changes in lateral leads
+
+RISK FACTORS
+============
+✓ Hypertension (Stage 2)
+✓ Obesity (Class I)
+✓ Dyslipidemia
+✓ Pre-diabetes
+✓ Sedentary lifestyle
+✓ Family history of CAD (father, age 58)
+
+ASSESSMENT
+==========
+1. Stage 2 Hypertension requiring pharmacological intervention
+2. Obesity Class I (BMI 30.1) with abdominal obesity
+3. Dyslipidemia with elevated LDL and low HDL
+4. Pre-diabetes (impaired fasting glucose)
+5. Mild mitral regurgitation
+6. Multiple cardiovascular risk factors present
+
+RECOMMENDATIONS
+===============
+1. URGENT: Start antihypertensive therapy (ACE inhibitor or ARB)
+2. Initiate statin therapy for dyslipidemia (target LDL <100)
+3. Weight management: Target 10% weight loss (8.2 kg reduction)
+4. Consider GLP-1RA medication for weight management and glycemic control
+5. Lifestyle modifications:
+   - DASH or Mediterranean diet
+   - 150 minutes/week moderate-intensity aerobic exercise
+   - Sodium restriction (<2000mg/day)
+   - Limit alcohol consumption
+6. Follow-up labs in 3 months (lipid panel, glucose, HbA1c)
+7. Repeat echocardiogram in 12 months
+8. Cardiology consultation recommended within 2-4 weeks
+9. Consider sleep apnea screening given obesity and hypertension
+
+FOLLOW-UP
+=========
+- Primary care: 2 weeks
+- Cardiology: 2-4 weeks
+- Repeat labs: 3 months
+- Repeat echo: 12 months
+
+PHYSICIAN NOTES
+===============
+This 52-year-old female presents with multiple cardiovascular risk factors 
+including obesity, hypertension, and dyslipidemia. The combination of 
+abdominal obesity (waist 98cm) and metabolic abnormalities significantly 
+increases her 10-year cardiovascular event risk. Aggressive risk factor 
+modification is essential. Weight loss of even 5-10% would provide substantial 
+cardiovascular benefit including blood pressure reduction and improved lipid 
+profile. Patient is counseled on lifestyle modifications and pharmacotherapy 
+options.
+
+Dr. Michael Chen, MD, FACC
+Cardiology Department
+Medical Center Hospital
+
+---END OF REPORT---
