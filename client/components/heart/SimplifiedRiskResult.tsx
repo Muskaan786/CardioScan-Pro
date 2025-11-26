@@ -261,29 +261,150 @@ export function SimplifiedRiskResult({ result, fileName }: SimplifiedRiskResultP
               )}
 
               {showPersonalizedPlan && bmi && (
-                <div className="space-y-2 p-3 bg-gray-50 rounded-lg border">
-                  <h4 className="font-semibold text-sm">Your Plan</h4>
-                  <Alert className="p-2">
-                    <Heart className="h-3 w-3" />
-                    <AlertDescription className="text-xs">
-                      <strong>Risk:</strong> {result.normalizedRiskPercent}% cardiac + BMI {bmi}
-                      {parseFloat(bmi) >= 25 && " (↑40-70% CVD risk)"}
+                <div className="space-y-2 p-4 bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg border-2 border-purple-200">
+                  <h4 className="font-bold text-base mb-3 flex items-center gap-2">
+                    <Heart className="h-5 w-5 text-purple-600" />
+                    Your Personalized Health Plan
+                  </h4>
+                  
+                  {/* Combined Risk Alert */}
+                  <Alert className="p-3 bg-white border-purple-200">
+                    <Heart className="h-4 w-4" />
+                    <AlertDescription className="text-sm">
+                      <strong>Combined Risk Assessment:</strong>
+                      <p className="mt-1">
+                        Cardiac Risk: <strong className="text-red-600">{result.normalizedRiskPercent}%</strong> + BMI: <strong className="text-orange-600">{bmi}</strong>
+                      </p>
+                      {parseFloat(bmi) >= 25 && (
+                        <p className="mt-2 text-xs text-red-700 bg-red-50 p-2 rounded">
+                          ⚠️ Being overweight/obese increases cardiovascular disease risk by 40-70%. Weight management is crucial for your heart health.
+                        </p>
+                      )}
+                      {parseFloat(bmi) < 25 && (
+                        <p className="mt-2 text-xs text-green-700 bg-green-50 p-2 rounded">
+                          ✓ Your weight is in a healthy range, which is excellent for your heart health!
+                        </p>
+                      )}
                     </AlertDescription>
                   </Alert>
-                  <div className="space-y-2">
+
+                  {/* Detailed Action Items */}
+                  <div className="space-y-2 mt-3">
+                    <h5 className="font-semibold text-sm text-gray-900 mb-2">Recommended Actions:</h5>
+                    
+                    {/* Weight Management */}
                     {parseFloat(bmi) >= 30 && (
-                      <div className="flex gap-2 p-2 bg-red-50 rounded text-xs border-l-2 border-red-500">
-                        <AlertTriangle className="h-4 w-4 text-red-600 flex-shrink-0" />
-                        <div><strong>Priority:</strong> Lose {(parseFloat(weight) * 0.05).toFixed(1)}-{(parseFloat(weight) * 0.10).toFixed(1)} kg</div>
+                      <div className="bg-red-50 rounded-lg p-3 border-l-4 border-red-500">
+                        <div className="flex gap-2 items-start">
+                          <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                          <div className="flex-1">
+                            <strong className="text-sm text-red-900">Priority: Weight Loss</strong>
+                            <p className="text-xs text-red-800 mt-1">
+                              Target: Lose 5-10% of body weight ({(parseFloat(weight) * 0.05).toFixed(1)}-{(parseFloat(weight) * 0.10).toFixed(1)} kg)
+                            </p>
+                            <p className="text-xs text-red-700 mt-1">
+                              This can reduce heart disease risk by up to 50% and lower blood pressure by 5-20 mmHg.
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     )}
-                    <div className="flex gap-2 p-2 bg-blue-50 rounded text-xs border-l-2 border-blue-500">
-                      <Activity className="h-4 w-4 text-blue-600 flex-shrink-0" />
-                      <div><strong>Exercise:</strong> 150min/week</div>
+
+                    {parseFloat(bmi) >= 25 && parseFloat(bmi) < 30 && (
+                      <div className="bg-yellow-50 rounded-lg p-3 border-l-4 border-yellow-500">
+                        <div className="flex gap-2 items-start">
+                          <TrendingUp className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                          <div className="flex-1">
+                            <strong className="text-sm text-yellow-900">Weight Management</strong>
+                            <p className="text-xs text-yellow-800 mt-1">
+                              Maintain or reduce weight to prevent progression. Ideal weight: ≤{((parseFloat(height) / 100) ** 2 * 24.9).toFixed(1)} kg
+                            </p>
+                            <p className="text-xs text-yellow-700 mt-1">
+                              Even 5-7% weight loss significantly improves heart health markers.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Exercise Plan */}
+                    <div className="bg-blue-50 rounded-lg p-3 border-l-4 border-blue-500">
+                      <div className="flex gap-2 items-start">
+                        <Activity className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <strong className="text-sm text-blue-900">Exercise Goal</strong>
+                          <p className="text-xs text-blue-800 mt-1">
+                            <strong>Target:</strong> 150 minutes moderate activity per week (30 min × 5 days)
+                          </p>
+                          <p className="text-xs text-blue-700 mt-1">
+                            <strong>Best activities:</strong> Brisk walking, swimming, cycling, dancing
+                          </p>
+                          <p className="text-xs text-blue-700 mt-1">
+                            Regular exercise reduces heart disease risk by 30-40%.
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex gap-2 p-2 bg-green-50 rounded text-xs border-l-2 border-green-500">
-                      <Heart className="h-4 w-4 text-green-600 flex-shrink-0" />
-                      <div><strong>Diet:</strong> Mediterranean (↓30% risk)</div>
+
+                    {/* Diet Recommendations */}
+                    <div className="bg-green-50 rounded-lg p-3 border-l-4 border-green-500">
+                      <div className="flex gap-2 items-start">
+                        <Heart className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <strong className="text-sm text-green-900">Heart-Healthy Diet</strong>
+                          <p className="text-xs text-green-800 mt-1">
+                            <strong>Mediterranean Diet</strong> reduces CVD risk by 30%
+                          </p>
+                          <ul className="text-xs text-green-700 mt-1 space-y-0.5 ml-4">
+                            <li>• More: Vegetables, fruits, whole grains, fish, nuts, olive oil</li>
+                            <li>• Less: Red meat, processed foods, sugar, saturated fats</li>
+                            <li>• Limit sodium to &lt;2,300mg/day (1 teaspoon salt)</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Medical Follow-up for High Risk */}
+                    {(result.normalizedRiskPercent >= 40 || parseFloat(bmi) >= 35) && (
+                      <div className="bg-purple-50 rounded-lg p-3 border-l-4 border-purple-500">
+                        <div className="flex gap-2 items-start">
+                          <CheckCircle className="h-5 w-5 text-purple-600 flex-shrink-0 mt-0.5" />
+                          <div className="flex-1">
+                            <strong className="text-sm text-purple-900">Medical Follow-up Required</strong>
+                            <p className="text-xs text-purple-800 mt-1">
+                              Given your risk profile, consult a cardiologist to discuss:
+                            </p>
+                            <ul className="text-xs text-purple-700 mt-1 space-y-0.5 ml-4">
+                              <li>• Medication options (statins, blood pressure control)</li>
+                              <li>• Advanced cardiac testing if needed</li>
+                              <li>• Personalized monitoring schedule</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Target Goals Summary */}
+                  <div className="bg-white rounded-lg p-3 border border-gray-200 mt-3">
+                    <h5 className="font-semibold text-sm text-gray-900 mb-2">Your Target Goals:</h5>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="bg-gray-50 p-2 rounded">
+                        <p className="text-gray-600">Target BMI</p>
+                        <p className="font-bold text-gray-900">18.5 - 24.9</p>
+                      </div>
+                      <div className="bg-gray-50 p-2 rounded">
+                        <p className="text-gray-600">Target Weight</p>
+                        <p className="font-bold text-gray-900">{((parseFloat(height) / 100) ** 2 * 18.5).toFixed(1)}-{((parseFloat(height) / 100) ** 2 * 24.9).toFixed(1)} kg</p>
+                      </div>
+                      <div className="bg-gray-50 p-2 rounded">
+                        <p className="text-gray-600">Blood Pressure</p>
+                        <p className="font-bold text-gray-900">&lt;120/80 mmHg</p>
+                      </div>
+                      <div className="bg-gray-50 p-2 rounded">
+                        <p className="text-gray-600">LDL Cholesterol</p>
+                        <p className="font-bold text-gray-900">&lt;100 mg/dL</p>
+                      </div>
                     </div>
                   </div>
                 </div>
